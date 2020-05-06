@@ -1,0 +1,26 @@
+.gameCanvas{
+	display: flex;
+}
+.gameGrid{
+	margin: 0 auto;
+	display: grid;
+	grid-template-columns: repeat(11, 1fr);
+	grid-template-rows: repeat(11, 1fr);
+	justify-items: center;
+	align-items: center;
+	width: 450px;
+	height: 450px;
+}
+.gameGrid__square{
+	width: 100%;
+	height: 100%;
+}
+.gameGrid__value{
+	width: 100%;
+	height: 100%;
+	display: flex;
+  	justify-content: center;
+	align-items: center;
+	font-family: 'comic Sans MS';
+	font-size: 26px;
+}

@@ -1,0 +1,14 @@
+* {
+    margin: 0;
+    outline: none;
+}
+textarea { resize: vertical; }
+
+.title{
+    font-size: 30px;
+    color:black;
+	border-bottom: 1px solid #ececec;;
+}
+.field{
+	color: #c4c4c4;
+}
