@@ -1,13 +1,20 @@
-// define([
-//     // 'Page/Page'
-// ], function () {
 
-//     alert('asdada');
-//     console.log(ReactDOM);
+alert();
+import Vue from 'vue';
 
-//     // ReactDOM.render(
-//     //     <div></div>,
-//     //     document.getElementById("root")
-//     // );
+new Vue({
+    el: '.page',
+    data: {
+        players: [
+            { name: 'Вася' },
+            { name: 'Компуктер' }
+        ],
 
-// });
+        letters: 'АБВГДЕЖЗИК'
+    },
+    methods: {
+        gridClick: (i, j) => {
+            console.log(i + '  ' + j);
+        }
+    }
+})
