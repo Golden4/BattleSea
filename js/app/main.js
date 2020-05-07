@@ -1,9 +1,13 @@
-define([
-    'Page/Page',
-], function (Page) {
-    'use strict';
+// define([
+//     // 'Page/Page'
+// ], function () {
 
-    const page = factory.create(Page);
-    page.mount(document.body);
+//     alert('asdada');
+//     console.log(ReactDOM);
 
-});
+//     // ReactDOM.render(
+//     //     <div></div>,
+//     //     document.getElementById("root")
+//     // );
+
+// });

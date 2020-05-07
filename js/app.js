@@ -1,4 +1,3 @@
-'use strict';
 
 requirejs.config({
     baseUrl: 'js',
@@ -8,6 +7,8 @@ requirejs.config({
         Base: 'components/Base',
         Page: 'components/Page',
         SeaBattle: 'components/SeaBattle',
+        'react': 'lib/react.production.min',
+        'react-dom': 'lib/react-dom.production.min',
         css: 'lib/require.css.min'
     }
 });

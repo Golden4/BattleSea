@@ -1,23 +1,22 @@
 define([
-    'Base/Component',
     'SeaBattle/GameGrid',
     'css!SeaBattle/css/SeaBattle.css'
-], function (Component, GameGrid) {
-    'use strict';
+], function (GameGrid) {
 
-    class SeaBattle extends Component {
+    class SeaBattle extends React.Component {
 
         constructor(options) {
             super(options);
+            console.log(React);
             // this.state.width = this.options.width;
             // this.state.height = this.options.height;
         }
 
-        render(options, { width, height }) {
-            return `<div class="gameCanvas">
-            ${this.childrens.create(GameGrid)}
-            ${this.childrens.create(GameGrid)}
-            </div>`;
+        render() {
+            // return <div className="gameCanvas">
+            //     ${this.childrens.create(GameGrid)}
+            // ${this.childrens.create(GameGrid)}
+            // </div>;
         }
 
         afterRender() {
