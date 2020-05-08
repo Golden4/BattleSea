@@ -4,8 +4,8 @@
     @drop.prevent="drop"
     :class="['gameGrid',{'gameGrid--inactive':!isActive}]"
   >
-    <template v-for="i in size">
-      <template v-for="j in size">
+    <template v-for="i in size+1">
+      <template v-for="j in size+1">
         <div v-if="i == 1 && j == 1" class="gameGrid__value" :key="(i+'+'+j)"></div>
         <div v-else-if="i == 1 && j != 1" class="gameGrid__value" :key="(i+'+'+j)">{{letters[j-2]}}</div>
         <div v-else-if="i != 1 && j == 1" class="gameGrid__value" :key="(i+'+'+j)">{{i-1}}</div>
@@ -13,14 +13,15 @@
           ref="grid"
           v-else
           @cellClick="cellClick"
-          :state="map[i-2][j-2]"
-          :x="i-2"
-          :y="j-2"
+          :info="{map:map[i-2][j-2], x:i-2,y:j-2}"
           :key="(i+'+'+j)"
+          :canReact="canReact"
         >
-          <template v-for="(k,key) in ships">
-            <GameShip :gameShip="{x:j-2, y:i-2, ship:k, drawShips}" :key="key" />
-          </template>
+          <GameShip
+            v-for="(k,key) in ships"
+            :gameShip="{x:j-2, y:i-2, ship:k, drawShips}"
+            :key="key"
+          />
         </GameGridItem>
       </template>
     </template>
@@ -33,23 +34,39 @@ import GameShip from "@/components/BattleSea/GameShip";
 
 //класс корабля
 class Ship {
-  constructor({ x, y, dir, size }) {
+  constructor({ x, y, dir, size, isVisible }) {
     this.x = x; //нач. коорд x
     this.y = y; //нач. коорд y
     this.dir = dir; // поворот 0 = гориз. 1 = вертик.
     this.size = size; // размер от 1 до 4
+    this.isVisible = isVisible;
+    this.isDead = false;
+  }
+
+  die() {
+    this.isVisible = true;
+    this.isDead = true;
+  }
+
+  //возвращем координты занимаемой области, включая соседние клетки
+  getOccupyRange() {
+    let sizeX = this.dir == 0 ? this.size : 1;
+    let sizeY = this.dir == 1 ? this.size : 1;
+    let startX = this.x - 1 >= 0 ? this.x - 1 : 0;
+    let startY = this.y - 1 >= 0 ? this.y - 1 : 0;
+    let endX = this.x + sizeX + 1 < 10 ? this.x + sizeX + 1 : 10;
+    let endY = this.y + sizeY + 1 < 10 ? this.y + sizeY + 1 : 10;
+    return { startX, startY, endX, endY };
   }
 }
 
 export default {
+  props: ["index", "isActive", "drawShips", "canReact"],
   data() {
     return {
-      isActive: true,
-      drawShips: true,
-      size: 11, // размер грида
-      map: [], //0 = обычный, -1 = мимо, -2 = крест, 1 = корабль
+      size: 10, // размер грида
+      map: [], //0 = обычный, -1 = мимо, -2 = крест, 1... = индексы кораблей
       ships: [],
-      marks: [],
       plasableMap: [],
       letters: "АБВГДЕЖЗИК"
     };
@@ -59,18 +76,63 @@ export default {
     this.createMap();
   },
   methods: {
+    //при нажатии на клетку, передаем координаты нажатой клетки
     cellClick({ x, y }) {
-      if (this.map[x][y] > 0) {
-        this.map[x][y] = -2;
-      } else if (this.map[x][y] == 0) {
-        this.map[x][y] = -1;
+      if (!this.isActive) return;
+      let destoyedShip = false;
+
+      const map = this.map[x][y];
+      const newRow = this.map[x].slice(0);
+      if (map.state > 0) {
+        newRow[y].state = -2;
+        destoyedShip = true;
+        this.$set(this.map, x, newRow);
+      } else if (map.state == 0) {
+        newRow[y].state = -1;
+        this.$set(this.map, x, newRow);
       }
+
+      if (destoyedShip) {
+        //Считаем кол-во частей кораблей
+        for (let shipIndex = 0; shipIndex < this.ships.length; shipIndex++) {
+          const shipCount = 0;
+          for (let i = 0; i < this.size; i++) {
+            for (let j = 0; j < this.size; j++) {
+              if (
+                this.map[i][j].state > 0 &&
+                this.map[i][j].state == shipIndex + 1
+              )
+                shipCount++;
+            }
+          }
+          //если нету частей и корабль жив, тогда меняем состояние клеток вокруг корабля и "убиваем"
+          const ship = this.ships[shipIndex];
+          if (shipCount == 0 && !ship.isDead) {
+            ship.die();
+
+            const range = ship.getOccupyRange();
+
+            for (let k = range.startX; k < range.endX; k++) {
+              for (let l = range.startY; l < range.endY; l++) {
+                if (this.map[l][k].state >= 0) {
+                  const newRow = this.map[l].slice(0);
+                  newRow[k].state = -1;
+                  this.$set(this.map, l, newRow);
+                }
+              }
+            }
+            break;
+          }
+        }
+      }
+
+      if (!destoyedShip) this.$emit("endMove", this.index);
     },
     createMap() {
       for (let i = 0; i < this.size; i++) {
         this.map[i] = [];
         for (let j = 0; j < this.size; j++) {
-          this.map[i][j] = 0;
+          this.map[i][j] = { state: 0 };
         }
       }
 
@@ -80,7 +142,7 @@ export default {
         let sizeY = ship.dir == 1 ? ship.size : 1;
         for (let k = ship.x; k < ship.x + sizeX; k++) {
           for (let l = ship.y; l < ship.y + sizeY; l++) {
-            this.map[l][k] = i + 1;
+            this.map[l][k].state = i + 1;
           }
         }
       }
@@ -96,7 +158,8 @@ export default {
               x: Math.floor(Math.random() * 10),
               y: Math.floor(Math.random() * 10),
               dir: Math.random() > 0.5 ? 0 : 1,
-              size
+              size,
+              isVisible: this.drawShips
             });
 
             if (this.canPlace(ship)) {
@@ -126,17 +189,10 @@ export default {
       for (let i = 0; i < this.ships.length; i++) {
         const ship = this.ships[i];
 
-        let sizeX = ship.dir == 0 ? ship.size : 1;
-        let sizeY = ship.dir == 1 ? ship.size : 1;
-        let startX = ship.x - 1 >= 0 ? ship.x - 1 : 0;
-        let startY = ship.y - 1 >= 0 ? ship.y - 1 : 0;
-        let endX =
-          ship.x + sizeX + 1 < this.size ? ship.x + sizeX + 1 : this.size;
-        let endY =
-          ship.y + sizeY + 1 < this.size ? ship.y + sizeY + 1 : this.size;
+        const range = ship.getOccupyRange();
 
-        for (let k = startX; k < endX; k++) {
-          for (let l = startY; l < endY; l++) {
+        for (let k = range.startX; k < range.endX; k++) {
+          for (let l = range.startY; l < range.endY; l++) {
             map[k][l] = false;
           }
         }
@@ -151,10 +207,6 @@ export default {
         }
 
       return true;
-    },
-    addMarks(...marks) {
-      for (let i in marks)
-        if (!this.marks.includes(marks[i])) this.marks.push(marks[i]);
     },
     addShips(...ships) {
       //добавить корабль в массив

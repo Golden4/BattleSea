@@ -1,9 +1,15 @@
 <template>
   <div class="gameSeaBattle">
-    <template v-for="n in players">
-      <div class="gameCanvas" :key="n.name">
+    <template v-for="(n,index) in players">
+      <div class="gameCanvas" :key="index">
         <div class="gameCanvas__title">{{n.name}}</div>
-        <GameGrid />
+        <GameGrid
+          :index="index"
+          :isActive="movePlayer == index"
+          :drawShips="index == 0"
+          :canReact="index == 1"
+          @endMove="nextMove"
+        />
       </div>
     </template>
   </div>
@@ -16,8 +22,14 @@ export default {
   data() {
     return {
       gameStage: 0,
+      movePlayer: 0,
       players: [{ name: "Вася Пупкин" }, { name: "Компуктер" }]
     };
+  },
+  methods: {
+    nextMove() {
+      this.movePlayer = (this.movePlayer + 1) % this.players.length;
+    }
   },
   components: {
     GameGrid

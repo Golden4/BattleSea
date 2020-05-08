@@ -3,31 +3,33 @@
     :class="['gameGrid__square',{'gameGrid__square--hovered':isHovering}]"
     @mouseover="cellHover(true)"
     @mouseout="cellHover(false)"
-    @click="cellClick"
   >
-    <div v-if="state == -1" class="gameGrid__mark gameGrid__mark--miss">•</div>
-    <div v-if="state == -2" class="gameGrid__mark gameGrid__mark--dead">×</div>
-    {{value?value:''}}
+    <div
+      v-if="canReact && info.map.state >= 0"
+      class="gameGrid__clickable"
+      @click="$emit('cellClick', { x: info.x, y: info.y })"
+    ></div>
+
+    <div v-if="info.map.state == -1" class="gameGrid__mark gameGrid__mark--miss">•</div>
+    <div v-if="info.map.state == -2" class="gameGrid__mark gameGrid__mark--dead">×</div>
+    {{info.value?info.value:''}}
     <slot></slot>
   </div>
 </template>
 
 <script>
 export default {
-  props: ["state", "value", "x", "y"],
+  props: ["info", "canReact"],
 
   data() {
     return {
-      canHover: true,
       isHovering: false
     };
   },
   methods: {
-    cellClick: function() {
-      this.$emit("cellClick", { x: this.x, y: this.y });
-    },
     cellHover: function(hoverItem) {
-      if (this.canHover && hoverItem) this.isHovering = true;
+      if (this.canReact && hoverItem && this.info.map.state >= 0)
+        this.isHovering = true;
       else this.isHovering = false;
     }
   }
@@ -40,16 +42,21 @@ export default {
   margin: -1px;
   background-color: #fff;
   position: relative;
+  transition: all 0.2s ease;
 }
 
 .gameGrid__square--hovered {
-  background-color: red;
+  background: red;
 }
 
 .gameGrid__square--selected {
   background-color: aqua;
 }
-
+.gameGrid__clickable {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+}
 .gameGrid__mark {
   z-index: 10;
   position: absolute;

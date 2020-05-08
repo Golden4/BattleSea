@@ -1,14 +1,13 @@
 <template>
   <div
-    v-if="gameShip.x == gameShip.ship.x && gameShip.y == gameShip.ship.y && gameShip.drawShips && drawShip"
+    v-if="gameShip.x == gameShip.ship.x && gameShip.y == gameShip.ship.y && gameShip.drawShips && gameShip.ship.isVisible"
     class="gameGrid__ship"
-    @click="rotateShip(gameShip.ship)"
     :style="shipStyle(gameShip.ship)"
   ></div>
 </template>
 
 <script>
-//
+// @click="rotateShip(gameShip.ship)"
 export default {
   props: ["gameShip"],
   data() {
@@ -17,18 +16,7 @@ export default {
       isEditable: true
     };
   },
-  mounted() {},
   methods: {
-    // dragStart: e => {
-    //   const target = e.target;
-
-    //   e.dataTransfer.setData("ship_id", target.id);
-    //   setTimeout(() => {
-    //     target.style.display = "none";
-    //   }, 0);
-
-    //   console.log(target);
-    // },
     shipStyle(k) {
       return {
         width: (k.dir == 0 ? k.size : 1) * 100 + "%",
@@ -56,6 +44,6 @@ export default {
   height: 100%;
   z-index: 2;
   transition: all 0.3s ease-out;
-  /* pointer-events: none; */
+  pointer-events: none;
 }
 </style>
