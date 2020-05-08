@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="gameShip.x == gameShip.ship.x && gameShip.y == gameShip.ship.y && gameShip.drawShips && gameShip.ship.isVisible"
+    v-if="gameShip.x == gameShip.ship.x && gameShip.y == gameShip.ship.y && (gameShip.drawShips || gameShip.ship.isVisible)"
     class="gameGrid__ship"
     :style="shipStyle(gameShip.ship)"
   ></div>

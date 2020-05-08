@@ -4,11 +4,12 @@
       <div class="gameCanvas" :key="index">
         <div class="gameCanvas__title">{{n.name}}</div>
         <GameGrid
-          :index="index"
-          :isActive="movePlayer == index"
+          @endMove="nextMove"
+          :isActive="movePlayer != index"
           :drawShips="index == 0"
           :canReact="index == 1"
-          @endMove="nextMove"
+          :index="index"
+          ref="gameGrid"
         />
       </div>
     </template>
@@ -18,17 +19,57 @@
 <script>
 import GameGrid from "@/components/BattleSea/GameGrid";
 
+export class Player {
+  constructor({ name, index }) {
+    this.name = name;
+    this.index = index;
+  }
+  onMove() {}
+}
+
+export class Computer extends Player {
+  constructor(options) {
+    super(options);
+  }
+
+  onMove(gameGrid) {
+    console.log("onMove");
+    this.timerInterval = 500;
+    this.recursivelyTimeout(() => {
+      const x = Math.floor(Math.random() * 10);
+      const y = Math.floor(Math.random() * 10);
+      console.log(x + " " + y);
+      return !gameGrid.cellClick({ x, y });
+    });
+  }
+
+  recursivelyTimeout(action) {
+    setTimeout(() => {
+      if (action()) {
+        this.recursivelyTimeout(action);
+      }
+    }, this.timerInterval);
+  }
+}
+
 export default {
   data() {
     return {
       gameStage: 0,
       movePlayer: 0,
-      players: [{ name: "Вася Пупкин" }, { name: "Компуктер" }]
+      players: [
+        new Player({ name: "Вася Пупкин", index: 0 }),
+        new Computer({ name: "Компуктер", index: 1 })
+      ]
     };
   },
   methods: {
     nextMove() {
+      console.log("nextMove");
       this.movePlayer = (this.movePlayer + 1) % this.players.length;
+
+      this.players[this.movePlayer].onMove(this.$refs.gameGrid[0]);
+      // const gameGrid = ;
     }
   },
   components: {

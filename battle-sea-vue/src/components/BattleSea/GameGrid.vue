@@ -33,7 +33,7 @@ import GameGridItem from "@/components/BattleSea/GameGridItem";
 import GameShip from "@/components/BattleSea/GameShip";
 
 //класс корабля
-class Ship {
+export class Ship {
   constructor({ x, y, dir, size, isVisible }) {
     this.x = x; //нач. коорд x
     this.y = y; //нач. коорд y
@@ -64,6 +64,9 @@ export default {
   props: ["index", "isActive", "drawShips", "canReact"],
   data() {
     return {
+      // isActive: true,
+      // drawShips: true,
+      // canReact: true,
       size: 10, // размер грида
       map: [], //0 = обычный, -1 = мимо, -2 = крест, 1... = индексы кораблей
       ships: [],
@@ -78,7 +81,8 @@ export default {
   methods: {
     //при нажатии на клетку, передаем координаты нажатой клетки
     cellClick({ x, y }) {
-      if (!this.isActive) return;
+      if (!this.isActive) return false;
+
       let destoyedShip = false;
 
       const map = this.map[x][y];
@@ -90,6 +94,8 @@ export default {
       } else if (map.state == 0) {
         newRow[y].state = -1;
         this.$set(this.map, x, newRow);
+      } else {
+        return false;
       }
 
       if (destoyedShip) {
@@ -126,7 +132,11 @@ export default {
         }
       }
 
-      if (!destoyedShip) this.$emit("endMove", this.index);
+      if (!destoyedShip) {
+        this.$emit("endMove", this.index);
+        return true;
+      }
+      return false;
     },
     createMap() {
       for (let i = 0; i < this.size; i++) {
@@ -233,7 +243,7 @@ export default {
   height: 450px;
 }
 .gameGrid--inactive {
-  opacity: 0.4;
+  opacity: 0.5;
   pointer-events: none;
 }
 
