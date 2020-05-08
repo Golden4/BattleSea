@@ -15,6 +15,7 @@ import GameGrid from "@/components/BattleSea/GameGrid";
 export default {
   data() {
     return {
+      gameStage: 0,
       players: [{ name: "Вася Пупкин" }, { name: "Компуктер" }]
     };
   },

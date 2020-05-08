@@ -5,8 +5,8 @@
     @mouseout="cellHover(false)"
     @click="cellClick"
   >
-    <div v-if="state == -1" class="gameGrid__mark gameGrid__mark--dead">×</div>
-    <div v-if="state == -2" class="gameGrid__mark gameGrid__mark--miss">•</div>
+    <div v-if="state == -1" class="gameGrid__mark gameGrid__mark--miss">•</div>
+    <div v-if="state == -2" class="gameGrid__mark gameGrid__mark--dead">×</div>
     {{value?value:''}}
     <slot></slot>
   </div>
@@ -24,7 +24,7 @@ export default {
   },
   methods: {
     cellClick: function() {
-      console.log(this.x + "  " + this.y);
+      this.$emit("cellClick", { x: this.x, y: this.y });
     },
     cellHover: function(hoverItem) {
       if (this.canHover && hoverItem) this.isHovering = true;

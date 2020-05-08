@@ -1,5 +1,9 @@
 <template>
-  <div :class="['gameGrid',{'gameGrid--inactive':!isActive}]">
+  <div
+    @dragover.prevent
+    @drop.prevent="drop"
+    :class="['gameGrid',{'gameGrid--inactive':!isActive}]"
+  >
     <template v-for="i in size">
       <template v-for="j in size">
         <div v-if="i == 1 && j == 1" class="gameGrid__value" :key="(i+'+'+j)"></div>
@@ -8,28 +12,24 @@
         <GameGridItem
           ref="grid"
           v-else
-          :state="gridItems[i-2][j-2]"
-          :x="j-1"
-          :y="i-1"
+          @cellClick="cellClick"
+          :state="map[i-2][j-2]"
+          :x="i-2"
+          :y="j-2"
           :key="(i+'+'+j)"
         >
-          <template v-for="k in ships">
-            <div
-              v-if="(j-2) == k.x && (i-2) == k.y"
-              class="gameGrid__ship"
-              :style="shipStyle(k)"
-              :key="k.x + ' ' + k.y"
-            ></div>
+          <template v-for="(k,key) in ships">
+            <GameShip :gameShip="{x:j-2, y:i-2, ship:k, drawShips}" :key="key" />
           </template>
         </GameGridItem>
       </template>
     </template>
-    <!-- <div class="gameGrid__ship"></div> -->
   </div>
 </template>
 
 <script>
 import GameGridItem from "@/components/BattleSea/GameGridItem";
+import GameShip from "@/components/BattleSea/GameShip";
 
 //класс корабля
 class Ship {
@@ -45,37 +45,76 @@ export default {
   data() {
     return {
       isActive: true,
+      drawShips: true,
       size: 11, // размер грида
-      letters: "АБВГДЕЖЗИК",
-      gridItems: [], //0 = обычный, -1 = мимо, -2 = крест, 1... и т.д индексы кораблей
+      map: [], //0 = обычный, -1 = мимо, -2 = крест, 1 = корабль
       ships: [],
       marks: [],
-      plasableMap: []
+      plasableMap: [],
+      letters: "АБВГДЕЖЗИК"
     };
   },
   created() {
-    //инициализация карты нулями
-    for (let i = 0; i < this.size; i++) {
-      this.gridItems[i] = [];
-      for (let j = 0; j < this.size; j++) {
-        this.gridItems[i][j] = 0;
-      }
-    }
-    this.addShips(new Ship({ x: 0, y: 0, dir: 0, size: 4 }));
-    this.addShips(new Ship({ x: 5, y: 5, dir: 0, size: 2 }));
-
-    this.addShips(new Ship({ x: 8, y: 5, dir: 1, size: 3 }));
-    this.getCanPlace(5, 6);
+    this.createRandomShips();
+    this.createMap();
   },
   methods: {
-    createShips() {
-      for (let size = 1; size <= 4; size++) {
-        for (let count = 1; count <= size; count++) {
-          this.addShips(new Ship({ x: 0, y: 0, dir: 0, size }));
+    cellClick({ x, y }) {
+      if (this.map[x][y] > 0) {
+        this.map[x][y] = -2;
+      } else if (this.map[x][y] == 0) {
+        this.map[x][y] = -1;
+      }
+    },
+    createMap() {
+      for (let i = 0; i < this.size; i++) {
+        this.map[i] = [];
+        for (let j = 0; j < this.size; j++) {
+          this.map[i][j] = 0;
+        }
+      }
+
+      for (let i = 0; i < this.ships.length; i++) {
+        const ship = this.ships[i];
+        let sizeX = ship.dir == 0 ? ship.size : 1;
+        let sizeY = ship.dir == 1 ? ship.size : 1;
+        for (let k = ship.x; k < ship.x + sizeX; k++) {
+          for (let l = ship.y; l < ship.y + sizeY; l++) {
+            this.map[l][k] = i + 1;
+          }
         }
       }
     },
-    getCanPlace(x, y) {
+    createRandomShips() {
+      this.ships = [];
+      for (let size = 4; size >= 1; size--) {
+        for (let count = 0; count < 5 - size; count++) {
+          let placed = false;
+
+          while (!placed) {
+            const ship = new Ship({
+              x: Math.floor(Math.random() * 10),
+              y: Math.floor(Math.random() * 10),
+              dir: Math.random() > 0.5 ? 0 : 1,
+              size
+            });
+
+            if (this.canPlace(ship)) {
+              this.addShips(ship);
+              placed = true;
+            }
+          }
+        }
+      }
+    },
+
+    canPlace(ship) {
+      if (
+        (ship.dir == 0 && ship.x + ship.size > 10) ||
+        (ship.dir == 1 && ship.y + ship.size > 10)
+      )
+        return false;
+
       let map = this.plasableMap;
       for (let i = 0; i < 11; i++) {
         map[i] = [];
@@ -102,7 +141,16 @@ export default {
           }
         }
       }
-      return map[x][y];
+      if (ship.dir == 0)
+        for (let i = 0; i < ship.size; i++) {
+          if (!map[ship.x + i][ship.y]) return false;
+        }
+      else
+        for (let i = 0; i < ship.size; i++) {
+          if (!map[ship.x][ship.y + i]) return false;
+        }
+
+      return true;
     },
     addMarks(...marks) {
       for (let i in marks)
@@ -113,16 +161,11 @@ export default {
       for (let i in ships) {
         if (!this.ships.includes(ships[i])) this.ships.push(ships[i]);
       }
-    },
-    shipStyle(k) {
-      return {
-        width: (k.dir == 0 ? k.size : 1) * 100 + "%",
-        height: (k.dir == 1 ? k.size : 1) * 100 + "%"
-      };
     }
   },
   components: {
-    GameGridItem
+    GameGridItem,
+    GameShip
   }
 };
 </script>
@@ -139,17 +182,6 @@ export default {
 }
 .gameGrid--inactive {
   opacity: 0.4;
-  pointer-events: none;
-}
-
-.gameGrid__ship {
-  background: #a600ff3d;
-  margin: -2px;
-  border: 2px solid #7200af8c;
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  z-index: 2;
   pointer-events: none;
 }
 
