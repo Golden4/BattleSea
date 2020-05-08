@@ -80,7 +80,6 @@ body {
 	height: 450px;
 }
 .gameGrid__square{
-	
 }
 .gameGrid__square--selected{
     background-color: aqua;

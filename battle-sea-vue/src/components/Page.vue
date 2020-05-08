@@ -1,10 +1,11 @@
 <template>
   <div class="page">
     <div class="content">
-      <div class="module">
-        <GameBattleSea />
-      </div>
-      <div class="module">© Special for Tensor by Alsynbaev F.</div>
+      <Module :title="componentTemplates[0].title">
+        <component :is="componentTemplates[0].Comp"></component>
+      </Module>
+
+      <Module>© Special for Tensor by Alsynbaev F.</Module>
     </div>
   </div>
 </template>
@@ -15,6 +16,16 @@ import GameBattleSea from "@/components/BattleSea/GameBattleSea";
 
 export default {
   name: "Page",
+  data() {
+    return {
+      componentTemplates: [
+        {
+          title: "Морской бой",
+          Comp: "GameBattleSea"
+        }
+      ]
+    };
+  },
   components: {
     Module,
     GameBattleSea
@@ -22,7 +33,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .page {
   width: 100%;
   position: relative;
@@ -37,13 +48,5 @@ export default {
 }
 .content__coloumn-main {
   grid-row-start: 1;
-}
-.module {
-  background: #fff;
-  border-radius: 10px;
-  border: 1px solid #e9e9e9;
-  padding: 15px;
-  margin: 10px 5px;
-  box-shadow: 0 3px 6px 0px #c8c8c8a8;
 }
 </style>
