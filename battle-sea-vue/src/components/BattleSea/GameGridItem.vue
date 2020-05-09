@@ -1,14 +1,11 @@
 <template>
-  <div :id="id" class="gameGrid__square" @mouseover="cellMouseOver">
-    <div :class="['gameGrid__clickable']" v-if="canClick" @click="cellClick"></div>
-
-    <div
-      :class="['gameGrid__clickable',{'gameGrid__square--hovered':isHovering}]"
-      v-if="canClick && needHover && info.map.state >= 0"
-      @mouseover="cellHover(true)"
-      @mouseout="cellHover(false)"
-    ></div>
-
+  <div
+    :id="id"
+    :class=" ['gameGrid__square',{'gameGrid__square--hovered':isHovering}]"
+    @mouseover="cellMouseOver"
+    @click="cellClick"
+    @mouseout="cellMouseOut"
+  >
     <transition name="gameGrid__mark--transition">
       <div v-if="info.map.state == -1" class="gameGrid__mark gameGrid__mark--miss">•</div>
     </transition>
@@ -31,16 +28,26 @@ export default {
     };
   },
   methods: {
+    //при нахождении мышки на элементе
+    //отображаем эффект наведения
     cellMouseOver(e) {
+      if (this.canClick && this.needHover && this.info.map.state >= 0)
+        this.cellHover(true);
       this.$emit("cellMouseOver", this);
     },
+    //при выходе мышки из элемента
+    //убираем эффект наведения
+    cellMouseOut() {
+      if (this.canClick && this.needHover) this.cellHover(false);
+    },
+    //при клике вызываем эвент клика
     cellClick() {
-      return this.$emit("cellClick", this);
+      if (this.canClick) this.$emit("cellClick", this);
     },
     cellHover(hoverItem) {
-      if (this.canInteract && hoverItem && this.info.map.state >= 0)
+      if (this.canClick && hoverItem && this.info.map.state >= 0) {
         this.isHovering = true;
-      else this.isHovering = false;
+      } else this.isHovering = false;
     }
   }
 };
@@ -70,6 +77,7 @@ export default {
   margin: -1px;
   background-color: #fff;
   position: relative;
+  pointer-events: all;
 }
 
 .gameGrid__square--hovered {
@@ -84,7 +92,7 @@ export default {
 .gameGrid__clickable {
   width: 100%;
   height: 100%;
-  position: absolute;
+  pointer-events: all;
 }
 .gameGrid__mark {
   z-index: 10;

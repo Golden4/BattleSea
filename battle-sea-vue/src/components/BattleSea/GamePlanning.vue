@@ -34,11 +34,12 @@
 import GameShip from "@/components/BattleSea/GameShip";
 
 export default {
-  props: ["gameGrid"],
+  props: ["player"],
   data() {
     return {
-      planingShips: [],
-      selectedShip: null,
+      planingShips: [], // макеты караблей
+      selectedShip: null, // выбранный корабль
+      //кнопки управления
       buttons: [
         {
           title: "Установка",
@@ -61,55 +62,62 @@ export default {
         {
           title: "Играть",
           bgImg: require("@/assets/img/play.png"),
-          enabled: this.playBtnEnabled(),
+          enabled: this.canStartGame,
           event: this.playBtn
         }
       ]
     };
   },
   methods: {
+    //если удалось разместить корабль, то выбранный кораль скрываем
     placeBtn() {
-      if (this.gameGrid.placeEditingShip()) {
+      if (this.player.gameGrid.placeEditingShip()) {
         this.selectedShip.isVisible = false;
         this.unselectAllShips();
       }
     },
+    //кнопка Поворот
     rotateBtn() {
-      this.gameGrid.rotateEditingShip();
+      this.player.gameGrid.rotateEditingShip();
     },
+    //кнопка Случайное расположение кораблей
     randomBtn() {
-      this.gameGrid.deleteEditingShip();
+      if (this.player.gameGrid) this.player.gameGrid.deleteEditingShip();
       this.unselectAllShips();
       this.hideAllShips();
-      this.gameGrid.createRandomShips();
+      if (this.player.gameGrid) this.player.gameGrid.createRandomShips();
     },
+    //кнопка Установка
     playBtn() {
-      console.log(this.canStartGame());
       if (this.canStartGame()) this.$emit("startGame", this);
     },
+    //проверка на то, можно ли начать игру
     canStartGame() {
       if (this.planingShips == null) return false;
-
+      //если все макеты кораблей скрыты, то можно начать
       for (let i = 0; i < this.planingShips.length; i++) {
         if (this.planingShips[i].isVisible) return false;
       }
       return true;
     },
+    //выбрать корабль, разместить корабль на гриде
     selectShip(ship) {
       if (this.selectedShip != null) this.selectedShip.isSelected = false;
 
       if (ship && ship.ship) {
         ship.ship.isSelected = true;
         this.selectedShip = ship.ship;
-        this.gameGrid.setEditingShip(ship.ship);
+        this.player.gameGrid.setEditingShip(ship.ship);
       }
     },
+    //убрать выделение кораблей
     unselectAllShips() {
       if (this.selectedShip) {
         this.selectedShip.isSelected = false;
         this.selectedShip = null;
       }
     },
+    //скрыть все макеты кораблей
     hideAllShips() {
       for (let i = 0; i < this.planingShips.length; i++) {
         this.planingShips[i].isVisible = false;
@@ -125,10 +133,11 @@ export default {
       return true;
     },
     playBtnEnabled() {
-      return this.canStartGame();
+      return true;
     }
   },
   created() {
+    //создание все макетов корблей
     for (let i = 4; i >= 1; i--) {
       for (let j = 1; j <= 5 - i; j++) {
         this.planingShips.push({
@@ -141,9 +150,6 @@ export default {
         });
       }
     }
-  },
-  mounted() {
-    this.selectShip(this.planingShips[0]);
   },
   components: {
     GameShip
@@ -165,6 +171,10 @@ export default {
   margin: 20px 0;
   display: flex;
 }
+.gamePlanning__buttonCont {
+  text-align: center;
+  width: 100px;
+}
 .gamePlanning__button {
   width: 80px;
   height: 80px;
@@ -180,14 +190,13 @@ export default {
   transition: all 0.1s;
   outline: none;
 }
-.gamePlanning__buttonCont {
-  text-align: center;
-  width: 100px;
-}
 .gamePlanning__button:hover {
   background-color: #cf3db7;
   border: 2px solid #c949b3;
   transform: scale(1.1);
+}
+.gamePlanning__button:active {
+  transform: scale(1);
 }
 .gamePlanning__button:disabled,
 .gamePlanning__button[disabled] {
@@ -196,11 +205,7 @@ export default {
   border: 2px solid #888888;
   cursor: not-allowed !important;
 }
-.gamePlanning__button:active {
-  transform: scale(1);
-}
-.gamePlanning__buttonLabel {
-}
+
 .gamePlanning__ship {
   margin: 0 20px;
 }

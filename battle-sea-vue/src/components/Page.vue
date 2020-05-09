@@ -5,7 +5,7 @@
         <component :is="comp.Comp"></component>
       </Module>
 
-      <Module>© Special for Tensor by Alsynbaev F.</Module>
+      <Module>© Specially for the Tensor from Alsynbaev Fanis.</Module>
     </div>
   </div>
 </template>
@@ -49,5 +49,28 @@ export default {
 }
 .content__coloumn-main {
   grid-row-start: 1;
+}
+button {
+  border: 2px solid #98007f;
+  background-position: center;
+  background-size: 50%;
+  background-repeat: no-repeat;
+  background-color: #cb00a9;
+  box-shadow: inset -1px 3px 0px rgba(255, 255, 255, 0.5),
+    2px 3px 2px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.1s;
+  outline: none;
+  border-radius: 10px;
+  color: white;
+  font-size: 20px;
+}
+button:hover {
+  background-color: #cf3db7;
+  border: 2px solid #c949b3;
+  transform: scale(1.1);
+}
+button:active {
+  transform: scale(1);
 }
 </style>

@@ -33,11 +33,6 @@ export default {
     dblclick() {
       this.$emit("shipDblClick", this);
     },
-    moveAt(e, elem) {
-      elem.style.left = e.pageX - elem.offsetWidth / 2 + "px";
-      elem.style.top = e.pageY - elem.offsetHeight / 2 + "px";
-      // console.log("moving" + elem.style.left + "  " + elem.style.top);
-    },
     rotateShip() {
       if (this.ship.dir == 0) {
         this.ship.dir = 1;
