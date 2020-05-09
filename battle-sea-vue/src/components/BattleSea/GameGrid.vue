@@ -4,23 +4,38 @@
     @drop.prevent="drop"
     :class="['gameGrid',{'gameGrid--inactive':!isActive}]"
   >
-    <template v-for="i in size+1">
-      <template v-for="j in size+1">
+    <template v-for="i in 11">
+      <template v-for="j in 11">
         <div v-if="i == 1 && j == 1" class="gameGrid__value" :key="(i+'+'+j)"></div>
         <div v-else-if="i == 1 && j != 1" class="gameGrid__value" :key="(i+'+'+j)">{{letters[j-2]}}</div>
         <div v-else-if="i != 1 && j == 1" class="gameGrid__value" :key="(i+'+'+j)">{{i-1}}</div>
         <GameGridItem
           ref="grid"
           v-else
+          :id="'cell'+(j-2)+(i-2)"
+          :x="(j-2)"
+          :y="(i-2)"
           @cellClick="cellClick"
+          @cellMouseOver="cellMouseOver"
           :info="{map:map[i-2][j-2], x:i-2,y:j-2}"
           :key="(i+'+'+j)"
-          :canReact="canReact"
+          :canClick="canInteract"
+          :needHover="canInteract && gameStage == 1"
         >
+          <template v-for="(k,key) in ships">
+            <GameShip
+              v-if="j-2 == k.x && i-2 == k.y"
+              :ship="k"
+              :id="'ship'+(j-2)+'+'+(i-2)"
+              :isEditing="true"
+              :key="key"
+            />
+          </template>
           <GameShip
-            v-for="(k,key) in ships"
-            :gameShip="{x:j-2, y:i-2, ship:k, drawShips}"
-            :key="key"
+            v-if="curEditingShip != null && curEditingShip.ship != null && j-2 == curEditingShip.ship.x && i-2 == curEditingShip.ship.y"
+            :ship="curEditingShip.ship"
+            :layoutType="curEditingShip.layoutType"
+            :key="(i+''+j)"
           />
         </GameGridItem>
       </template>
@@ -61,32 +76,75 @@ export class Ship {
 }
 
 export default {
-  props: ["index", "isActive", "drawShips", "canReact"],
+  name: "GameGrid",
+  props: ["index", "gameStage", "isActive", "drawShips", "canInteract"],
   data() {
     return {
       // isActive: true,
       // drawShips: true,
-      // canReact: true,
-      size: 10, // размер грида
+      // canInteract: true,
+      // size: 10, // размер грида
       map: [], //0 = обычный, -1 = мимо, -2 = крест, 1... = индексы кораблей
       ships: [],
+      curEditingShip: null,
       plasableMap: [],
       letters: "АБВГДЕЖЗИК"
     };
   },
   created() {
-    this.createRandomShips();
+    // this.createRandomShips();
     this.createMap();
   },
+  mounted() {
+    // this.curEditingShip = {
+    //   layoutType: "green",
+    //   ship: new Ship({
+    //     x: 3,
+    //     y: 3,
+    //     dir: 1,
+    //     size: 2,
+    //     isVisible: true
+    //   })
+    // };
+  },
   methods: {
+    cellMouseOver(cell) {
+      let ship = new Ship({
+        x: cell.x,
+        y: cell.y,
+        dir: 1,
+        size: 2,
+        isVisible: true
+      });
+
+      let layoutType = "red";
+
+      if (this.canPlace(ship)) {
+        layoutType = "green";
+      }
+      this.curEditingShip = { ship, layoutType };
+    },
+
     //при нажатии на клетку, передаем координаты нажатой клетки
     cellClick({ x, y }) {
+      //если подготовительная стадия игры, то поставить корабль на клетку
+      if (this.gameStage == 0) {
+        if (this.curEditingShip && this.curEditingShip.layoutType == "green") {
+          this.addShips(this.curEditingShip.ship);
+          this.curEditingShip = null;
+        }
+      }
+      //если стадия начала игры, то стрелять
+      if (this.gameStage == 1) return this.shot({ x, y });
+    },
+    shot({ x, y }) {
       if (!this.isActive) return false;
 
       let destoyedShip = false;
 
       const map = this.map[x][y];
       const newRow = this.map[x].slice(0);
+      //ставим маркет либо крест, либо точка
       if (map.state > 0) {
         newRow[y].state = -2;
         destoyedShip = true;
@@ -97,13 +155,13 @@ export default {
       } else {
         return false;
       }
-
+      let allShipsCount = 0;
       if (destoyedShip) {
         //Считаем кол-во частей кораблей
         for (let shipIndex = 0; shipIndex < this.ships.length; shipIndex++) {
           const shipCount = 0;
-          for (let i = 0; i < this.size; i++) {
-            for (let j = 0; j < this.size; j++) {
+          for (let i = 0; i < 10; i++) {
+            for (let j = 0; j < 10; j++) {
               if (
                 this.map[i][j].state > 0 &&
                 this.map[i][j].state == shipIndex + 1
@@ -111,6 +169,7 @@ export default {
                 shipCount++;
             }
           }
+          allShipsCount += shipCount;
           //если нету частей и корабль жив, тогда меняем состояние клеток вокруг корабля и "убиваем"
           const ship = this.ships[shipIndex];
           if (shipCount == 0 && !ship.isDead) {
@@ -132,6 +191,10 @@ export default {
         }
       }
 
+      if (destoyedShip && allShipsCount == 0) {
+        this.$emit("onWon", this.index);
+      }
+
       if (!destoyedShip) {
         this.$emit("endMove", this.index);
         return true;
@@ -139,9 +202,9 @@ export default {
       return false;
     },
     createMap() {
-      for (let i = 0; i < this.size; i++) {
+      for (let i = 0; i < 10; i++) {
         this.map[i] = [];
-        for (let j = 0; j < this.size; j++) {
+        for (let j = 0; j < 10; j++) {
           this.map[i][j] = { state: 0 };
         }
       }
@@ -239,12 +302,13 @@ export default {
   grid-template-rows: repeat(11, 1fr);
   justify-items: stretch;
   align-items: stretch;
-  width: 450px;
-  height: 450px;
+  width: 440px;
+  height: 440px;
 }
 .gameGrid--inactive {
   opacity: 0.5;
   pointer-events: none;
+  transition: all 0.3s ease;
 }
 
 .gameGrid__value {

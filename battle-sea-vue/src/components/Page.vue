@@ -33,7 +33,7 @@ export default {
 };
 </script>
 
-<style scoped>
+<style>
 .page {
   width: 100%;
   position: relative;
@@ -45,6 +45,7 @@ export default {
 .content {
   padding: 0 10px;
   display: grid;
+  width: 100%;
 }
 .content__coloumn-main {
   grid-row-start: 1;

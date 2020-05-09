@@ -1,34 +1,77 @@
 <template>
   <div
-    v-if="gameShip.x == gameShip.ship.x && gameShip.y == gameShip.ship.y && (gameShip.drawShips || gameShip.ship.isVisible)"
-    class="gameGrid__ship"
-    :style="shipStyle(gameShip.ship)"
+    v-if="isVisible"
+    :class="['gameGrid__ship',
+            {'gameGrid__ship--editable':isEditing,
+            'gameGrid__ship--layout-green':layoutType=='green',
+            'gameGrid__ship--layout-red':layoutType=='red',
+            'gameGrid__ship--dragging': isDragging}]"
+    :style="shipStyle"
+    @mousedown="mousedown"
+    @dragstart.stop
   ></div>
 </template>
 
 <script>
-// @click="rotateShip(gameShip.ship)"
+// @click="rotateShip()"
+// @mousemove="mousemove"
+// @mouseup="mouseup"
+
 export default {
-  props: ["gameShip"],
+  name: "GameShip",
+  props: ["ship", "layoutType", "isEditing"],
   data() {
     return {
-      drawShip: true,
-      isEditable: true
+      isDragging: false,
+      drawShip: true
     };
   },
   methods: {
-    shipStyle(k) {
-      return {
-        width: (k.dir == 0 ? k.size : 1) * 100 + "%",
-        height: (k.dir == 1 ? k.size : 1) * 100 + "%"
-      };
+    mousedown(e) {
+      const elem = e.srcElement;
+      elem.style.position = "absolute";
+      this.moveAt(e, elem);
+      document.body.appendChild(elem);
+      elem.style.zIndex = 1000;
+      this.isDragging = true;
+
+      document.onmousemove = function(e) {
+        this.moveAt(e, elem);
+        console.log("sadadad");
+        // elem.hidden = true;
+        // let elemBelow = document.elementFromPoint(e.clientX, e.clientY);
+        // elem.hidden = false;
+      }.bind(this);
+
+      elem.onmouseup = function() {
+        console.log("sadadad");
+        document.onmousemove = null;
+        elem.onmouseup = null;
+        this.isDragging = false;
+      }.bind(this);
     },
-    rotateShip(ship) {
-      if (ship.dir == 0) {
-        ship.dir = 1;
+    moveAt(e, elem) {
+      elem.style.left = e.pageX - elem.offsetWidth / 2 + "px";
+      elem.style.top = e.pageY - elem.offsetHeight / 2 + "px";
+      // console.log("moving" + elem.style.left + "  " + elem.style.top);
+    },
+    rotateShip() {
+      if (this.ship.dir == 0) {
+        this.ship.dir = 1;
       } else {
-        ship.dir = 0;
+        this.ship.dir = 0;
       }
+    }
+  },
+  computed: {
+    isVisible() {
+      return this.ship.isVisible;
+    },
+    shipStyle() {
+      return {
+        width: (this.ship.dir == 0 ? this.ship.size : 1) * 40 + "px",
+        height: (this.ship.dir == 1 ? this.ship.size : 1) * 40 + "px"
+      };
     }
   }
 };
@@ -40,10 +83,24 @@ export default {
   margin: -2px;
   border: 2px solid #7200af8c;
   position: absolute;
-  width: 100%;
-  height: 100%;
   z-index: 2;
   transition: all 0.3s ease-out;
   pointer-events: none;
+}
+.gameGrid__ship--layout-green {
+  background: #00af1d4d;
+  border: 2px solid #36e700;
+}
+.gameGrid__ship--layout-red {
+  background: #af00004d;
+  border: 2px solid #e70000;
+}
+.gameGrid__ship--editable {
+  pointer-events: all;
+  cursor: move;
+  transition: none;
+}
+.gameGrid__ship--dragging {
+  pointer-events: fill;
 }
 </style>

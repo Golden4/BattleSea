@@ -1,13 +1,28 @@
 <template>
   <div class="gameSeaBattle">
-    <template v-for="(n,index) in players">
-      <div class="gameCanvas" :key="index">
+    <template v-if="gameStage == 0">
+      <div class="gameCanvas">
+        <div class="gameCanvas__title">{{getCurrentPlayer.name}}</div>
+        <GameGrid
+          :isActive="true"
+          :drawShips="true"
+          :gameStage="gameStage"
+          :canInteract="true"
+          ref="gameGrid"
+        />
+      </div>
+    </template>
+
+    <template v-if="gameStage == 1">
+      <div class="gameCanvas" :key="index" v-for="(n,index) in players">
         <div class="gameCanvas__title">{{n.name}}</div>
         <GameGrid
           @endMove="nextMove"
-          :isActive="movePlayer != index"
+          @onWon="onWon"
+          :isActive="movePlayer == index"
           :drawShips="index == 0"
-          :canReact="index == 1"
+          :gameStage="gameStage"
+          :canInteract="index == 1"
           :index="index"
           ref="gameGrid"
         />
@@ -31,15 +46,14 @@ export class Computer extends Player {
   constructor(options) {
     super(options);
   }
-
+  //выполнятеся когда переходит ход
   onMove(gameGrid) {
-    console.log("onMove");
-    this.timerInterval = 500;
+    this.timerInterval = 1000;
     this.recursivelyTimeout(() => {
       const x = Math.floor(Math.random() * 10);
       const y = Math.floor(Math.random() * 10);
-      console.log(x + " " + y);
-      return !gameGrid.cellClick({ x, y });
+      console.log(this.name + ":" + x + " " + y);
+      return !gameGrid.shot({ x, y });
     });
   }
 
@@ -53,10 +67,17 @@ export class Computer extends Player {
 }
 
 export default {
+  name: "GameBattleSea",
   data() {
     return {
-      gameStage: 0,
+      gameStage: 0, //
       movePlayer: 0,
+      currentPlayerIndex: 0,
+
+      levelTepmlates: [
+        { firstPlayer: Player, secondPlayer: Player },
+        { firstPlayer: Player, secondPlayer: Computer }
+      ],
       players: [
         new Player({ name: "Вася Пупкин", index: 0 }),
         new Computer({ name: "Компуктер", index: 1 })
@@ -65,11 +86,17 @@ export default {
   },
   methods: {
     nextMove() {
-      console.log("nextMove");
       this.movePlayer = (this.movePlayer + 1) % this.players.length;
-
       this.players[this.movePlayer].onMove(this.$refs.gameGrid[0]);
-      // const gameGrid = ;
+    },
+    onWon(index) {
+      console.log(this.players[index].name + " won!");
+      gameStage = 3;
+    }
+  },
+  computed: {
+    getCurrentPlayer() {
+      return this.players[this.currentPlayerIndex];
     }
   },
   components: {

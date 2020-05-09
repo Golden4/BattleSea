@@ -1,25 +1,29 @@
 <template>
-  <div
-    :class="['gameGrid__square',{'gameGrid__square--hovered':isHovering}]"
-    @mouseover="cellHover(true)"
-    @mouseout="cellHover(false)"
-  >
+  <div :id="id" class="gameGrid__square" @mouseover="cellMouseOver">
+    <div :class="['gameGrid__clickable']" v-if="canClick" @click="cellClick"></div>
+
     <div
-      v-if="canReact && info.map.state >= 0"
-      class="gameGrid__clickable"
-      @click="$emit('cellClick', { x: info.x, y: info.y })"
+      :class="['gameGrid__clickable',{'gameGrid__square--hovered':isHovering}]"
+      v-if="canClick && needHover && info.map.state >= 0"
+      @mouseover="cellHover(true)"
+      @mouseout="cellHover(false)"
     ></div>
 
-    <div v-if="info.map.state == -1" class="gameGrid__mark gameGrid__mark--miss">•</div>
-    <div v-if="info.map.state == -2" class="gameGrid__mark gameGrid__mark--dead">×</div>
-    {{info.value?info.value:''}}
-    <slot></slot>
+    <transition name="gameGrid__mark--transition">
+      <div v-if="info.map.state == -1" class="gameGrid__mark gameGrid__mark--miss">•</div>
+    </transition>
+
+    <transition name="gameGrid__mark--transition">
+      <div v-if="info.map.state == -2" class="gameGrid__mark gameGrid__mark--dead">×</div>
+    </transition>
+    {{info.value}}
+    <slot />
   </div>
 </template>
 
 <script>
 export default {
-  props: ["info", "canReact"],
+  props: ["id", "info", "canClick", "needHover", "x", "y"],
 
   data() {
     return {
@@ -27,8 +31,14 @@ export default {
     };
   },
   methods: {
-    cellHover: function(hoverItem) {
-      if (this.canReact && hoverItem && this.info.map.state >= 0)
+    cellMouseOver(e) {
+      this.$emit("cellMouseOver", this);
+    },
+    cellClick() {
+      return this.$emit("cellClick", this);
+    },
+    cellHover(hoverItem) {
+      if (this.canInteract && hoverItem && this.info.map.state >= 0)
         this.isHovering = true;
       else this.isHovering = false;
     }
@@ -37,16 +47,35 @@ export default {
 </script>
 
 <style>
+.gameGrid__mark--transition-enter-active {
+  animation: bounce-in 0.5s;
+}
+.gameGrid__mark--transition-leave-active {
+  animation: bounce-in 0.5s reverse;
+}
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .gameGrid__square {
   border: 1px solid #a600ff;
   margin: -1px;
   background-color: #fff;
   position: relative;
-  transition: all 0.2s ease;
 }
 
 .gameGrid__square--hovered {
-  background: red;
+  background: rgba(255, 0, 0, 0.384);
+  transition: all 0.3s ease;
+  cursor: crosshair;
 }
 
 .gameGrid__square--selected {
@@ -60,7 +89,6 @@ export default {
 .gameGrid__mark {
   z-index: 10;
   position: absolute;
-
   width: 100%;
   height: 100%;
   display: flex;
@@ -73,6 +101,7 @@ export default {
   bottom: 10px;
   user-select: none;
   pointer-events: none;
+  transition: all 0.5s ease-in-out;
 }
 
 .gameGrid__mark--miss {
