@@ -5,10 +5,11 @@
             {'gameGrid__ship--editable':isEditing,
             'gameGrid__ship--layout-green':layoutType=='green',
             'gameGrid__ship--layout-red':layoutType=='red',
-            'gameGrid__ship--dragging': isDragging}]"
+            'gameGrid__ship--planning':layoutType=='planning',
+            'gameGrid__ship--selected': ship && ship.isSelected}]"
     :style="shipStyle"
-    @mousedown="mousedown"
-    @dragstart.stop
+    @click="click"
+    @dblclick="dblclick"
   ></div>
 </template>
 
@@ -22,33 +23,15 @@ export default {
   props: ["ship", "layoutType", "isEditing"],
   data() {
     return {
-      isDragging: false,
       drawShip: true
     };
   },
   methods: {
-    mousedown(e) {
-      const elem = e.srcElement;
-      elem.style.position = "absolute";
-      this.moveAt(e, elem);
-      document.body.appendChild(elem);
-      elem.style.zIndex = 1000;
-      this.isDragging = true;
-
-      document.onmousemove = function(e) {
-        this.moveAt(e, elem);
-        console.log("sadadad");
-        // elem.hidden = true;
-        // let elemBelow = document.elementFromPoint(e.clientX, e.clientY);
-        // elem.hidden = false;
-      }.bind(this);
-
-      elem.onmouseup = function() {
-        console.log("sadadad");
-        document.onmousemove = null;
-        elem.onmouseup = null;
-        this.isDragging = false;
-      }.bind(this);
+    click() {
+      this.$emit("shipClick", this);
+    },
+    dblclick() {
+      this.$emit("shipDblClick", this);
     },
     moveAt(e, elem) {
       elem.style.left = e.pageX - elem.offsetWidth / 2 + "px";
@@ -84,7 +67,7 @@ export default {
   border: 2px solid #7200af8c;
   position: absolute;
   z-index: 2;
-  transition: all 0.3s ease-out;
+  /* transition: all 0.3s ease-out; */
   pointer-events: none;
 }
 .gameGrid__ship--layout-green {
@@ -97,10 +80,16 @@ export default {
 }
 .gameGrid__ship--editable {
   pointer-events: all;
-  cursor: move;
+  cursor: pointer;
   transition: none;
 }
 .gameGrid__ship--dragging {
   pointer-events: fill;
+}
+.gameGrid__ship--planning {
+  position: inherit;
+}
+.gameGrid__ship--selected {
+  background: azure;
 }
 </style>

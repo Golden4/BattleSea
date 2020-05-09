@@ -1,8 +1,8 @@
 <template>
   <div class="page">
     <div class="content">
-      <Module :title="componentTemplates[0].title">
-        <component :is="componentTemplates[0].Comp"></component>
+      <Module v-for="(comp,index) in componentTemplates" :key="index" :title="comp.title">
+        <component :is="comp.Comp"></component>
       </Module>
 
       <Module>© Special for Tensor by Alsynbaev F.</Module>

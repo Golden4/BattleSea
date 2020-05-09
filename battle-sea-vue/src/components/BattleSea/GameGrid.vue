@@ -1,9 +1,5 @@
 <template>
-  <div
-    @dragover.prevent
-    @drop.prevent="drop"
-    :class="['gameGrid',{'gameGrid--inactive':!isActive}]"
-  >
+  <div :class="['gameGrid',{'gameGrid--inactive':!isActive}]">
     <template v-for="i in 11">
       <template v-for="j in 11">
         <div v-if="i == 1 && j == 1" class="gameGrid__value" :key="(i+'+'+j)"></div>
@@ -54,10 +50,11 @@ export class Ship {
     this.y = y; //нач. коорд y
     this.dir = dir; // поворот 0 = гориз. 1 = вертик.
     this.size = size; // размер от 1 до 4
-    this.isVisible = isVisible;
-    this.isDead = false;
+    this.isVisible = isVisible; //видимость
+    this.isDead = false; //состояние
   }
 
+  // "убить" корабль и отобразить
   die() {
     this.isVisible = true;
     this.isDead = true;
@@ -84,55 +81,76 @@ export default {
       // drawShips: true,
       // canInteract: true,
       // size: 10, // размер грида
-      map: [], //0 = обычный, -1 = мимо, -2 = крест, 1... = индексы кораблей
-      ships: [],
-      curEditingShip: null,
-      plasableMap: [],
-      letters: "АБВГДЕЖЗИК"
+      map: [], //0 = обычный, -1 = мимо, -2 = крест, 1,2,3... = индексы кораблей
+      ships: [], // спсиок коаблей
+      curEditingShip: null, // планирование корабля
+      plasableMap: [], // карта доспночти размещения состоит из true и false
+      letters: "АБВГДЕЖЗИК" // буквы клеток по горизотали сверху
     };
   },
   created() {
     // this.createRandomShips();
     this.createMap();
   },
-  mounted() {
-    // this.curEditingShip = {
-    //   layoutType: "green",
-    //   ship: new Ship({
-    //     x: 3,
-    //     y: 3,
-    //     dir: 1,
-    //     size: 2,
-    //     isVisible: true
-    //   })
-    // };
-  },
   methods: {
-    cellMouseOver(cell) {
-      let ship = new Ship({
-        x: cell.x,
-        y: cell.y,
-        dir: 1,
-        size: 2,
+    // при наведении на клетку, cell - это vue component клетки
+    cellMouseOver(cell) {},
+    setEditingShip(ship) {
+      let newShip = new Ship({
+        x: 3,
+        y: 3,
+        dir: ship.dir,
+        size: ship.size,
         isVisible: true
       });
 
       let layoutType = "red";
 
-      if (this.canPlace(ship)) {
+      if (this.canPlace(newShip)) {
         layoutType = "green";
       }
-      this.curEditingShip = { ship, layoutType };
-    },
 
+      this.curEditingShip = { ship: newShip, layoutType };
+    },
+    editEditingShip({ x, y, dir, size }) {
+      if (!this.curEditingShip || !this.curEditingShip.ship) return;
+
+      if (x != null && y != null) {
+        this.curEditingShip.ship.x = x;
+        this.curEditingShip.ship.y = y;
+      }
+      if (dir != null) {
+        this.curEditingShip.ship.dir = dir;
+      }
+
+      let layoutType = "red";
+
+      if (this.canPlace(this.curEditingShip.ship)) {
+        layoutType = "green";
+      }
+
+      this.curEditingShip.layoutType = layoutType;
+    },
+    rotateEditingShip() {
+      if (this.curEditingShip && this.curEditingShip.ship)
+        this.editEditingShip({ dir: (this.curEditingShip.ship.dir + 1) % 2 });
+    },
+    deleteEditingShip() {
+      this.curEditingShip = null;
+    },
+    placeEditingShip() {
+      if (this.curEditingShip && this.curEditingShip.layoutType == "green") {
+        this.addShips(this.curEditingShip.ship);
+        this.curEditingShip = null;
+        return true;
+      }
+      return false;
+    },
     //при нажатии на клетку, передаем координаты нажатой клетки
     cellClick({ x, y }) {
       //если подготовительная стадия игры, то поставить корабль на клетку
       if (this.gameStage == 0) {
-        if (this.curEditingShip && this.curEditingShip.layoutType == "green") {
-          this.addShips(this.curEditingShip.ship);
-          this.curEditingShip = null;
-        }
+        this.editEditingShip({ x, y });
       }
       //если стадия начала игры, то стрелять
       if (this.gameStage == 1) return this.shot({ x, y });
@@ -220,6 +238,8 @@ export default {
         }
       }
     },
+
+    //разместить случайным образом корабли
     createRandomShips() {
       this.ships = [];
       for (let size = 4; size >= 1; size--) {
@@ -243,7 +263,7 @@ export default {
         }
       }
     },
-
+    // можно ли разместить корабль
     canPlace(ship) {
       if (
         (ship.dir == 0 && ship.x + ship.size > 10) ||
@@ -281,8 +301,9 @@ export default {
 
       return true;
     },
+
+    //добавить корабль в список кораблей
     addShips(...ships) {
-      //добавить корабль в массив
       for (let i in ships) {
         if (!this.ships.includes(ships[i])) this.ships.push(ships[i]);
       }
