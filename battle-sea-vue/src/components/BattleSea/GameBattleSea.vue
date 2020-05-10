@@ -88,8 +88,9 @@ export class ComputerEasy extends Player {
       const pointIndex = Math.floor(Math.random() * avaiblePoints.length);
       const pointToShot = avaiblePoints[pointIndex];
       //стреляем по точке
+      const shotResult = enemyGameGrid.shot(pointToShot);
       //если попали по кораблю продолжаем стрелять
-      return enemyGameGrid.shot(pointToShot) != 3;
+      return shotResult == 3 || shotResult == 2;
     });
   }
 
@@ -143,7 +144,6 @@ export class ComputerMedium extends Player {
 
         //если несколько поаданий
         if (this.hittedShipPoints.length > 1) {
-          console.log(this.hittedShipPoints.length > 1);
           let xPoints = [];
           let yPoints = [];
 
