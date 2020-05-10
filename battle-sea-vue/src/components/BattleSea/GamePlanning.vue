@@ -1,5 +1,6 @@
 <template>
   <div class="gamePlanning">
+    <h2 class="gamePlanning__title">Расположите корабли</h2>
     <div class="gamePlanning__ships">
       <template v-for="line in 4">
         <div class="gamePlanning__ships_line" :key="line">
@@ -21,7 +22,7 @@
         <button
           class="gamePlanning__button"
           @click="btn.event"
-          :disabled="!btn.enabled"
+          :disabled="btn.enabled"
           :style="{ backgroundImage: 'url(' + btn.bgImg + ')' }"
         ></button>
         <div class="gamePlanning__buttonLabel">{{btn.title}}</div>
@@ -44,28 +45,32 @@ export default {
         {
           title: "Установка",
           bgImg: require("@/assets/img/ok.png"),
-          enabled: this.placeBtnEnabled(),
+          enabled: this.placeBtnEnabled,
           event: this.placeBtn
         },
         {
           title: "Поворот",
           bgImg: require("@/assets/img/rotate.png"),
-          enabled: this.rotateBtnEnabled(),
+          enabled: this.rotateBtnEnabled,
           event: this.rotateBtn
         },
         {
           title: "Случайное расположение кораблей",
           bgImg: require("@/assets/img/random.png"),
-          enabled: this.randomBtnEnabled(),
+          enabled: this.randomBtnEnabled,
           event: this.randomBtn
         },
         {
           title: "Играть",
           bgImg: require("@/assets/img/play.png"),
-          enabled: this.canStartGame,
+          enabled: this.canStartGameEnabled,
           event: this.playBtn
         }
-      ]
+      ],
+      rotateBtnEnabled: true,
+      placeBtnEnabled: true,
+      randomBtnEnabled: true,
+      canStartGameEnabled: true
     };
   },
   methods: {
@@ -90,6 +95,7 @@ export default {
     //кнопка Установка
     playBtn() {
       if (this.canStartGame()) this.$emit("startGame", this);
+      else alert("Разместите все корабли!");
     },
     //проверка на то, можно ли начать игру
     canStartGame() {
@@ -122,18 +128,6 @@ export default {
       for (let i = 0; i < this.planingShips.length; i++) {
         this.planingShips[i].isVisible = false;
       }
-    },
-    placeBtnEnabled() {
-      return true;
-    },
-    rotateBtnEnabled() {
-      return true;
-    },
-    randomBtnEnabled() {
-      return true;
-    },
-    playBtnEnabled() {
-      return true;
     }
   },
   created() {
@@ -213,5 +207,8 @@ export default {
   display: flex;
   margin: 10px 0 0 0;
   justify-content: space-around;
+}
+.gamePlanning__title {
+  text-align: center;
 }
 </style>

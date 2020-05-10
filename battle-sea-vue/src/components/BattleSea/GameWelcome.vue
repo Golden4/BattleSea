@@ -15,7 +15,7 @@
       />
     </p>
     <p>
-      <button class="startView__startBtn" @click.once="onStart">Начать</button>
+      <button class="startView__startBtn" @click.once="onStart">Играть</button>
     </p>
     <p v-if="isActiveMessage">Привет, {{name}}!</p>
   </div>

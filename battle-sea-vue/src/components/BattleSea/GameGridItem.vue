@@ -4,6 +4,7 @@
     :class=" ['gameGrid__square',{'gameGrid__square--hovered':isHovering}]"
     @mouseover="cellMouseOver"
     @click="cellClick"
+    @mousemove="cellMouseMove"
     @mouseout="cellMouseOut"
   >
     <transition name="gameGrid__mark--transition">
@@ -28,6 +29,9 @@ export default {
     };
   },
   methods: {
+    cellMouseMove(e) {
+      this.$emit("cellMouseMove", this);
+    },
     //при нахождении мышки на элементе
     //отображаем эффект наведения
     cellMouseOver(e) {

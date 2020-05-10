@@ -1,10 +1,17 @@
 <template>
   <div class="gameSeaBattle">
     <div class="gameSeaBattle__view">
-      <GameWelcome @onStart="startPrepare" v-if="(gameStage == -1)" />
+      <!-- Ввод имени -->
+      <GameWelcome @onStart="startWelcome" v-if="(gameStage == 'welcome')" />
+      <!-- Режим игры -->
+      <GameMode
+        @gameModeSelected="gameModeSelected"
+        :gameModeTemplates="gameModeTepmlates"
+        v-if="(gameStage == 'mode')"
+      />
 
       <div class="gameCanvas" :key="index" v-for="(n,index) in players">
-        <template v-if="gameStage == 0 || gameStage == 1 || gameStage == 2">
+        <template v-if="gameStage == 'prepare' || gameStage == 'game' || gameStage == 'result'">
           <div class="gameCanvas">
             <div
               :class="['gameCanvas__title',{'gameCanvas__title--active':(index == movePlayer)}]"
@@ -14,26 +21,26 @@
               @onEndGame="onEndGame"
               @gridMounted="gridMounted"
               :index="index"
-              :isActive="(gameStage == 0) || (gameStage == 1 && movePlayer != index)"
-              :drawShips="(gameStage == 0) || (gameStage == 1 && currentPlayerIndex == index)"
+              :isActive="(gameStage == 'prepare') || (gameStage == 'game' && movePlayer != index)"
+              :drawShips="(gameStage == 'prepare') || (gameStage == 'game' && currentPlayerIndex == index)"
               :gameStage="gameStage"
-              :canInteract="((gameStage == 0) || (gameStage == 1 && currentPlayerIndex != index)) && (gameStage != 2)"
+              :canInteract="((gameStage == 'prepare') || (gameStage == 'game' && currentPlayerIndex != index)) && (gameStage != 'result')"
               ref="gameGrid"
             />
           </div>
         </template>
       </div>
 
-      <template v-if="gameStage == 0">
+      <template v-if="gameStage == 'prepare'">
         <GamePlanning @startGame="startGame" :player="getCurrentPlayer" />
       </template>
     </div>
     <div
-      v-if="gameStage == 1"
+      v-if="gameStage == 'game'"
       class="gameSeaBattle__messageBox"
     >{{movePlayer == currentPlayerIndex?'Ваш ход': 'Делает ход '+ players[movePlayer].name }}</div>
 
-    <div class="gameSeaBattle__bottomCont" v-if="gameStage == 2">
+    <div class="gameSeaBattle__bottomCont" v-if="gameStage == 'result'">
       <div
         class="gameSeaBattle__messageBox"
         :style="{fontWeight:'bold'}"
@@ -47,6 +54,7 @@
 import GameGrid from "@/components/BattleSea/GameGrid";
 import GamePlanning from "@/components/BattleSea/GamePlanning";
 import GameWelcome from "@/components/BattleSea/GameWelcome";
+import GameMode from "@/components/BattleSea/GameMode";
 
 export class Player {
   constructor({ name, index, gameGrid }) {
@@ -58,25 +66,171 @@ export class Player {
   onMove() {}
 }
 
-export class Computer extends Player {
+//класс легкого компьютера
+export class ComputerEasy extends Player {
   constructor(options) {
     super(options);
+    this.name = "Легкий компьютер";
   }
 
   //выполнятеся когда переходит ход на компьютера
   onMove(enemyGameGrid) {
+    //если есть запущенный таймер, то чистим его
+    if (this.currentTimeout) clearTimeout(this.currentTimeout);
+
+    //задержка между выстрелами
     this.timerInterval = 1000;
+
     this.recursivelyTimeout(() => {
-      const x = Math.floor(Math.random() * 10);
-      const y = Math.floor(Math.random() * 10);
-      console.log(this.name + ":" + x + " " + y);
-      return !enemyGameGrid.shot({ x, y });
+      //получаем доступные для выстрела координаты
+      const avaiblePoints = enemyGameGrid.getAvaiblePointsToShot();
+      //выбираем случайные доступные кординаты
+      const pointIndex = Math.floor(Math.random() * avaiblePoints.length);
+      const pointToShot = avaiblePoints[pointIndex];
+      //стреляем по точке
+      //если попали по кораблю продолжаем стрелять
+      return enemyGameGrid.shot(pointToShot) != 3;
     });
   }
 
   // рекурсивный таймер
   recursivelyTimeout(action) {
-    setTimeout(() => {
+    this.currentTimeout = setTimeout(() => {
+      if (action()) {
+        this.recursivelyTimeout(action);
+      }
+    }, this.timerInterval);
+  }
+}
+
+//класс средний компьютер
+export class ComputerMedium extends Player {
+  constructor(options) {
+    super(options);
+    this.name = "Средний компьютер";
+    this.hittedShipPoints = [];
+  }
+
+  //выполнятеся когда переходит ход на компьютера
+  onMove(enemyGameGrid) {
+    //если есть запущенный таймер, то чистим его
+    if (this.currentTimeout) clearTimeout(this.currentTimeout);
+    //задержка между выстрелами
+    this.timerInterval = 1000;
+
+    //последние точки куда попали
+    this.recursivelyTimeout(() => {
+      let pointToShot = -1;
+      //получаем доступные для выстрела координаты
+      const avaiblePoints = enemyGameGrid.getAvaiblePointsToShot();
+
+      //если есть последние попадания
+      if (this.hittedShipPoints.length > 0) {
+        let neighborPoints = [];
+
+        //есть есть 1 попадание
+        if (this.hittedShipPoints.length == 1) {
+          //текущая точка
+          const currentPoint = this.hittedShipPoints[0];
+          //координыты соседних точек
+          neighborPoints = [
+            { x: currentPoint.x, y: currentPoint.y + 1 },
+            { x: currentPoint.x, y: currentPoint.y - 1 },
+            { x: currentPoint.x - 1, y: currentPoint.y },
+            { x: currentPoint.x + 1, y: currentPoint.y }
+          ];
+        }
+
+        //если несколько поаданий
+        if (this.hittedShipPoints.length > 1) {
+          console.log(this.hittedShipPoints.length > 1);
+          let xPoints = [];
+          let yPoints = [];
+
+          //делим на координаты на x и y
+          for (let i = 0; i < this.hittedShipPoints.length; i++) {
+            const hittedShipPoint = this.hittedShipPoints[i];
+            xPoints.push(hittedShipPoint.x);
+            yPoints.push(hittedShipPoint.y);
+          }
+
+          //ищем макс и мин точки по координатам
+          const maxPointX = Math.max.apply(Math, xPoints);
+          const minPointX = Math.min.apply(Math, xPoints);
+          const maxPointY = Math.max.apply(Math, yPoints);
+          const minPointY = Math.min.apply(Math, yPoints);
+
+          if (maxPointY != minPointY) {
+            //берем соседние точки по вертикали верхних и нижних точек
+            neighborPoints = [
+              { x: maxPointX, y: minPointY - 1 },
+              { x: maxPointX, y: maxPointY + 1 }
+            ];
+          }
+
+          if (maxPointX != minPointX) {
+            //берем соседние точки по горизонтали левых и правых точек
+            neighborPoints = [
+              { x: minPointX - 1, y: maxPointY },
+              { x: maxPointX + 1, y: maxPointY }
+            ];
+          }
+        }
+
+        //отбираем координаты куда можо выстрелить
+        let canShotPoints = [];
+
+        for (let i = 0; i < neighborPoints.length; i++) {
+          const point = neighborPoints[i];
+
+          for (let j = 0; j < avaiblePoints.length; j++) {
+            const avaiblePoint = avaiblePoints[j];
+            if (JSON.stringify(avaiblePoint) == JSON.stringify(point)) {
+              canShotPoints.push(point);
+              break;
+            }
+          }
+        }
+
+        if (canShotPoints) {
+          //выбираем случайную доступную сосднюю точку
+          const canShotPointIndex = Math.floor(
+            Math.random() * canShotPoints.length
+          );
+          pointToShot = canShotPoints[canShotPointIndex];
+        } else {
+          this.hittedShipPoints = [];
+        }
+      }
+
+      if (pointToShot == -1) {
+        //выбираем случайные доступные кординаты
+        const pointIndex = Math.floor(Math.random() * avaiblePoints.length);
+        pointToShot = avaiblePoints[pointIndex];
+      }
+
+      //стреляем по координте
+      const shotResult = enemyGameGrid.shot(pointToShot);
+
+      //ели попали по караблю
+      if (shotResult == 2) {
+        //сохраняем последнее попапдние
+        this.hittedShipPoints.push(pointToShot);
+      }
+
+      //если уничтожили корабль
+      if (shotResult == 3) {
+        //чистим точки попадний
+        this.hittedShipPoints = [];
+      }
+      //если попали по караблю или уничтожили, то продолжаем
+      return shotResult == 3 || shotResult == 2;
+    });
+  }
+
+  // рекурсивный таймер
+  recursivelyTimeout(action) {
+    this.currentTimeout = setTimeout(() => {
       if (action()) {
         this.recursivelyTimeout(action);
       }
@@ -88,20 +242,30 @@ export default {
   name: "GameBattleSea",
   data() {
     return {
-      gameStageData: -1, // -1 -ввод имени 0 - расстановка, 1 - игра, 2 - результат
+      // 'welcome' - ввод имени
+      // 'mode' - выбор режима игры
+      // 'prepare' - расстановка,
+      // 'game' - игра,
+      // 'result' - результат
+      gameStageData: "welcome",
       movePlayer: 0, // индекс игрока, который ходит
       currentPlayerIndex: 0, // индекс текущего игрок
-
+      gameModeTepmlateIndex: 1,
       // режимы игры
-      levelTepmlates: [
-        { firstPlayer: Player, secondPlayer: Player },
-        { firstPlayer: Player, secondPlayer: Computer }
+      gameModeTepmlates: [
+        {
+          firstPlayer: { comp: Player, type: "Игрок" },
+          secondPlayer: { comp: ComputerEasy, type: "Легкий компьютер" }
+        },
+        {
+          firstPlayer: { comp: Player, type: "Игрок" },
+          secondPlayer: { comp: ComputerMedium, type: "Средний компьютер" }
+        }
       ],
 
       // список игроков
-      players: [
-        // new Computer({ name: "Компуктер", index: 1 })
-      ]
+      players: [],
+      enteredName: "Безымянный"
     };
   },
 
@@ -109,24 +273,30 @@ export default {
     this.onChangeStage();
   },
   methods: {
-    //начать планироавние
-    startPrepare(welcomeVue) {
+    startWelcome(welcomeVue) {
       this.currentPlayerIndex = 0;
-      this.players.push(
-        new Player({ name: welcomeVue.name || "Безымянный", index: 0 })
-      );
-      this.gameStage = 0;
+
+      if (welcomeVue.name) this.enteredName = welcomeVue.name;
+
+      this.gameStage = "mode";
+    },
+    gameModeSelected(index) {
+      this.gameModeTepmlateIndex = index;
+      const component = this.gameModeTepmlates[this.gameModeTepmlateIndex]
+        .firstPlayer.comp;
+      this.players.push(new component({ name: this.enteredName, index: 0 }));
+      this.gameStage = "prepare";
     },
     //начать игру
     startGame() {
-      this.gameStage = 1;
+      this.gameStage = "game";
       for (let i = 0; i < this.$refs.gameGrid.length; i++) {
         this.$refs.gameGrid[i].startGame();
       }
     },
     //вызывается при измении этапа с помощью геттера сеттера
     onChangeStage() {
-      if (this.gameStage == 0) {
+      if (this.gameStage == "prepare") {
         if (this.$refs.gameGrid)
           this.players[this.currentPlayerIndex] = {
             ...this.players[this.currentPlayerIndex],
@@ -134,9 +304,15 @@ export default {
           };
       }
 
-      if (this.gameStage == 1) {
+      if (this.gameStage == "game") {
+        const component = this.gameModeTepmlates[this.gameModeTepmlateIndex]
+          .secondPlayer.comp;
         //добавлние противника
-        this.players.push(new Computer({ name: "Компьютер", index: 1 }));
+        this.players.push(
+          new component({
+            index: 1
+          })
+        );
       }
     },
     gridMounted(grid) {
@@ -147,7 +323,7 @@ export default {
     //при нажатии кнопки повтора
     retryBtn() {
       //меняем этап подготовки
-      this.gameStage = 0;
+      this.gameStage = "prepare";
       //оставляем только 1 игрока
       this.players = this.players.slice(0, 1);
       //у грида все очищаем
@@ -162,7 +338,7 @@ export default {
     // вызывается при победе одного из игроков, передается индекс програвшего
     onEndGame(index) {
       const enemyIndex = (index + 1) % this.players.length;
-      this.gameStage = 2;
+      this.gameStage = "result";
     }
   },
   computed: {
@@ -179,7 +355,6 @@ export default {
     // возр текцщего игрока
     getCurrentPlayer: {
       get: function() {
-        console.log(this.players[this.currentPlayerIndex]);
         return this.players[this.currentPlayerIndex];
       }
     }
@@ -187,7 +362,8 @@ export default {
   components: {
     GameGrid,
     GamePlanning,
-    GameWelcome
+    GameWelcome,
+    GameMode
   }
 };
 </script>

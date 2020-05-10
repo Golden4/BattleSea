@@ -16,12 +16,13 @@
           :id="'cell'+(j-2)+(i-2)"
           :x="(j-2)"
           :y="(i-2)"
+          @cellMouseMove="cellMouseMove"
           @cellClick="cellClick"
           @cellMouseOver="cellMouseOver"
           :info="{map:map[i-2][j-2], x:i-2,y:j-2}"
           :key="(i+'+'+j)"
           :canClick="canInteract"
-          :needHover="canInteract && gameStage == 1"
+          :needHover="canInteract && gameStage == 'game'"
         >
           <!-- пробегаемся по всем кораблям -->
           <template v-for="(k,key) in ships">
@@ -89,7 +90,7 @@ export default {
       map: [], //0 = обычный, -1 = мимо, -2 = крест, 1,2,3... = индексы кораблей
       ships: [], // спсиок коаблей
       curEditingShip: null, // макет планирования корабля
-      plasableMap: [], // карта доспночти размещения: true и false
+      plasableMap: [], // карта доспночти размещения: bool
       letters: "АБВГДЕЖЗИК" // буквы клеток по горизотали сверху
     };
   },
@@ -97,7 +98,7 @@ export default {
     //обновляем карту доступности размещения
     this.updatePlacableMap();
     //если игра началасть, а корабли пусты, тогда генерируем
-    if (this.gameStage == 1 && this.ships && this.ships.length == 0) {
+    if (this.gameStage == "game" && this.ships && this.ships.length == 0) {
       this.createRandomShips();
     }
     this.createMap();
@@ -175,38 +176,55 @@ export default {
     //при нажатии на клетку, передаем координаты нажатой клетки
     cellClick({ x, y }) {
       //если подготовительная стадия игры, то поставить корабль на клетку
-      if (this.gameStage == 0) {
+      if (this.gameStage == "prepare") {
         this.editEditingShip({ x, y });
       }
       //если стадия начала игры, то стрелять
-      if (this.gameStage == 1) return this.shot({ x: y, y: x });
+      if (this.gameStage == "game") return this.shot({ x: y, y: x });
     },
+    //при перемещении мышки
+    cellMouseMove({ x, y }) {
+      // if (this.gameStage == 0) {
+      //   this.editEditingShip({ x, y });
+      // }
+    },
+    //получение доступных для выстрела координат
+    getAvaiblePointsToShot() {
+      let avaiblePoints = [];
 
-    //выстрелить по координатам
+      for (let x = 0; x < 10; x++) {
+        for (let y = 0; y < 10; y++) {
+          if (this.canShot({ x, y })) {
+            avaiblePoints.push({ x, y });
+          }
+        }
+      }
+      return avaiblePoints;
+    },
+    //можно стрелять по координатам
+    canShot({ x, y }) {
+      if (this.map && this.map[x][y].state >= 0) {
+        return true;
+      }
+      return false;
+    },
+    //выстрелить по координатам. 0 - не зачитало, 1 - мимо, 2 - попадание по караблю, 3 - убит корабль
     shot({ x, y }) {
-      if (!this.isActive) return false;
-
+      if (!this.isActive) return 0;
+      let result = 0;
       //флаг попадание по кораблю
       let hit = false;
-      console.log(this.map);
       //делаем реактивные изменения в массиве, чтобы dom обновился
       const map = this.map[x][y];
       const newRow = this.map[x].slice(0);
-      //ставим маркет либо крест, либо точка
-      if (map.state > 0) {
-        newRow[y].state = -2;
-        hit = true;
-        this.$set(this.map, x, newRow);
-      } else if (map.state == 0) {
-        newRow[y].state = -1;
-        this.$set(this.map, x, newRow);
-      } else {
-        return false;
-      }
-      console.log(this.map);
 
-      //если попали по кораблю
-      if (hit) {
+      //если есть корабль
+      if (map.state > 0) {
+        //меняем на попадание
+        newRow[y].state = -2;
+        result = 2;
+        this.$set(this.map, x, newRow);
+
         //Считаем кол-во частей кораблей
         for (let shipIndex = 0; shipIndex < this.ships.length; shipIndex++) {
           const shipCount = 0;
@@ -219,12 +237,16 @@ export default {
                 shipCount++;
             }
           }
-          //если нету частей и корабль жив, тогда меняем состояние клеток вокруг корабля и "убиваем"
+
+          //если нету частей и корабль жив, тогда меняем состояние клеток вокруг корабля и уничтожаем
           const ship = this.ships[shipIndex];
           if (shipCount == 0 && !ship.isDead) {
+            //уничтожаем корабль
             ship.die();
+
             //получаем координаты клеток вокруг корабля
             const range = ship.getOccupyRange();
+
             //"реактивно" меняем массив
             for (let k = range.startX; k < range.endX; k++) {
               for (let l = range.startY; l < range.endY; l++) {
@@ -235,35 +257,44 @@ export default {
                 }
               }
             }
+
+            //меняем результат на уничтожение
+            result = 3;
             break;
           }
         }
 
-        //Проверка всех кораблей на вимость
-        let allShipsVisible = false;
+        //Проверка всех кораблей на уничтожение
+        let allShipsDead = true;
         for (let i = 0; i < this.ships.length; i++) {
           const ship = this.ships[i];
-          if (!ship.isVisible) {
-            allShipsVisible = false;
+          if (!ship.isDead) {
+            allShipsDead = false;
             break;
           }
         }
-        //Если все корабли видимы (уничтожены) вызываем эвент заверешнеия игры
-        if (allShipsVisible) this.$emit("onEndGame", this.index);
+
+        //Если все корабли уничтожены вызываем эвент заверешнеия игры
+        if (allShipsDead) {
+          this.$emit("onEndGame", this.index);
+        }
+
+        //мимо
+      } else if (map.state == 0) {
+        newRow[y].state = -1;
+        result = 1;
+        this.$set(this.map, x, newRow);
+        //завершаем ход
+        this.$emit("endMove", this.index);
       }
 
-      //Если нет попадания, тогда завершаем ход, вызывая эвент
-      if (!hit) {
-        this.$emit("endMove", this.index);
-        return true;
-      }
-      return false;
+      return result;
     },
 
     startGame() {
       this.updatePlacableMap();
       //если игра началасть, а корабли пусты, тогда генерируем
-      if (this.gameStage == 1 && this.ships && this.ships.length == 0) {
+      if (this.gameStage == "game" && this.ships && this.ships.length == 0) {
         this.createRandomShips();
       }
       this.createMap();
@@ -303,10 +334,10 @@ export default {
       for (let size = 4; size >= 1; size--) {
         for (let count = 0; count < 5 - size; count++) {
           let placed = false;
-
+          let i = 0;
           //ищем случайные доступные для размещения координаты
           //если можно, размещаем
-          while (!placed) {
+          while (!placed && i < 1000) {
             const ship = new Ship({
               x: Math.floor(Math.random() * 10),
               y: Math.floor(Math.random() * 10),
@@ -318,6 +349,7 @@ export default {
               this.addShips(ship);
               placed = true;
             }
+            i++;
           }
         }
       }
