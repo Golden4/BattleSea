@@ -22,7 +22,7 @@
         <button
           class="gamePlanning__button"
           @click="btn.event"
-          :disabled="btn.enabled"
+          v-bind:disabled="!btn.enabled()"
           :style="{ backgroundImage: 'url(' + btn.bgImg + ')' }"
         ></button>
         <div class="gamePlanning__buttonLabel">{{btn.title}}</div>
@@ -45,35 +45,36 @@ export default {
         {
           title: "Установка",
           bgImg: require("@/assets/img/ok.png"),
-          enabled: this.placeBtnEnabled,
+          enabled: this.selectedShipIsNull,
           event: this.placeBtn
         },
         {
           title: "Поворот",
           bgImg: require("@/assets/img/rotate.png"),
-          enabled: this.rotateBtnEnabled,
+          enabled: this.selectedShipIsNull,
           event: this.rotateBtn
         },
         {
           title: "Случайное расположение кораблей",
           bgImg: require("@/assets/img/random.png"),
-          enabled: this.randomBtnEnabled,
+          enabled() {
+            return true;
+          },
           event: this.randomBtn
         },
         {
           title: "Играть",
           bgImg: require("@/assets/img/play.png"),
-          enabled: this.canStartGameEnabled,
+          enabled: this.canStartGame,
           event: this.playBtn
         }
-      ],
-      rotateBtnEnabled: true,
-      placeBtnEnabled: true,
-      randomBtnEnabled: true,
-      canStartGameEnabled: true
+      ]
     };
   },
   methods: {
+    selectedShipIsNull() {
+      return this.selectedShip != null;
+    },
     //если удалось разместить корабль, то выбранный кораль скрываем
     placeBtn() {
       if (this.player.gameGrid.placeEditingShip()) {
@@ -109,10 +110,11 @@ export default {
     //выбрать корабль, разместить корабль на гриде
     selectShip(ship) {
       if (this.selectedShip != null) this.selectedShip.isSelected = false;
-
       if (ship && ship.ship) {
         ship.ship.isSelected = true;
+
         this.selectedShip = ship.ship;
+
         this.player.gameGrid.setEditingShip(ship.ship);
       }
     },

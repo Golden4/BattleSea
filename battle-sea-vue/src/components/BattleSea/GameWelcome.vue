@@ -11,7 +11,7 @@
         type="text"
         class="startView__nameInput"
         placeholder="Имя"
-        @change="change"
+        @input="change"
       />
     </p>
     <p>
